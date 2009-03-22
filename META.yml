@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               SSH-Command
-version:            0.02
+version:            0.03
 abstract:           SSH::Command - interface to execute multiple commands on host by SSH protocol
 author:
     - NRG <pavel.odintsov@googlemail.com>
@@ -11,6 +11,7 @@ configure_requires:
 requires:
     Carp:              0
     Data::Dumper:      0
+    Exporter::Lite:    0
     File::Temp:        0
     Getopt::Long:      0
     Net::SSH2:         0

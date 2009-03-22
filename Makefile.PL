@@ -16,6 +16,7 @@ WriteMakefile
                         'Net::SSH2'          => '0',
                         'Scope::Guard'       => '0',
                         'File::Temp'         => '0',
+                        'Exporter::Lite'     => '0',
                     },
     INSTALLDIRS  => 'site',
     EXE_FILES    => [],

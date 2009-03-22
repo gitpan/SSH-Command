@@ -8,14 +8,17 @@ use Data::Dumper;
 use File::Temp;
 use Scope::Guard;
 use Net::SSH2;
+use Exporter::Lite;
 
 our $DEBUG = 0;
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
+our @EXPORT     = qw/ssh_execute/;
 
 =head1 NAME
 
-SSH::Command - interface to execute multiple commands on host by SSH protocol
+SSH::Command - interface to execute multiple commands
+on host by SSH protocol without certificates ( only login + password )
 
 =cut
 
@@ -128,10 +131,6 @@ sub ssh_execute {
     }
 }
 
-#
-# Test local user: suxx / qwerty
-#
-
 sub wrapper {
     # Put config data to YAML config
     my $user_dir_path   = "/var/www/vhosts/test_domain/httpdocs";
@@ -213,78 +212,12 @@ sub wrapper {
 }
 
 
-### Test prototypes
-
-sub run_tests {
-    get_uname_from_host_full_match() or die "Simple compare fail";   
-    get_uname_from_host_regexp_verify() or die "RegExp fail";
-    check_scp() or die "SCP fail";
-}   
-
-# Get uname from host and check it by regexp
-sub get_uname_from_host_regexp_verify {
-
-    return ssh_execute(
-        host     => '127.0.0.1',
-        username => 'suxx',
-        password => 'qwerty',
-        commands =>
-        [
-            {
-                cmd    => 'uname -a',     # for check connection
-                verify => qr/linux/i,
-            }
-        ]
-    );
-}
-
-# get uname from host and check in by full match
-sub get_uname_from_host_full_match {
-
-    return ssh_execute(
-        host     => '127.0.0.1',
-        username => 'suxx',
-        password => 'qwerty',
-        commands =>
-        [
-            {
-                cmd    => 'uname -r',     # for check connection
-                verify => '2.6.24-22-generic',
-            }
-        ]
-    );
-}
-
-# Check SCP file operations
-sub check_scp {
-
-    return ssh_execute(
-        host     => '127.0.0.1',
-        username => 'suxx',
-        password => 'qwerty',
-        commands =>
-        [
-            {
-                cmd       => 'scp_put',
-                string    => 'php suxx',
-                dest_path => '/tmp/php_suxx',
-            },
-
-            {
-                cmd    => 'cat /tmp/php_suxx',     # for check connection
-                verify => 'php suxx',
-            }
-        ]
-    );
-}
-
-
 1;
 
 __END__
         # Simple analogue of Scope::Guard
         my $close_handles_object = eval {
-            package XXX::Utils::DestroyObject;
+            package XXX::DestroyObject;
 
             sub new {
                 my $class = shift;
