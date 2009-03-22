@@ -10,7 +10,14 @@ use Scope::Guard;
 use Net::SSH2;
 
 our $DEBUG = 0;
-our $VERSION = '0.0.1';
+our $VERSION = '0.02';
+
+
+=head1 NAME
+
+SSH::Command - interface to execute multiple commands on host by SSH protocol
+
+=cut
 
 #
 # Module Net::SSH2 have troubles with Perl 5.10
@@ -62,30 +69,6 @@ sub ssh_execute {
             }
         }
     
-=head
-        # Simple analogue of Scope::Guard
-        my $close_handles_object = eval {
-            package XXX::Utils::DestroyObject;
-
-            sub new {
-                my $class = shift;
-                           
-                return bless { object => shift, method => shift }, $class;
-            }
-
-            sub DESTROY {
-                my $self = shift;
-                
-                my $object = $self->{object};
-                my $method = $self->{method};
-
-                #print "close handles!";
-                return $object->$method;
-            }
-            __PACKAGE__
-        }->new($ssh2, 'disconnect');
-=cut
-
         my $sg = Scope::Guard->new( sub { $ssh2->disconnect } );
 
         if ( ref $params{commands} eq 'ARRAY' ) {
@@ -297,3 +280,27 @@ sub check_scp {
 
 
 1;
+
+__END__
+        # Simple analogue of Scope::Guard
+        my $close_handles_object = eval {
+            package XXX::Utils::DestroyObject;
+
+            sub new {
+                my $class = shift;
+                           
+                return bless { object => shift, method => shift }, $class;
+            }
+
+            sub DESTROY {
+                my $self = shift;
+                
+                my $object = $self->{object};
+                my $method = $self->{method};
+
+                #print "close handles!";
+                return $object->$method;
+            }
+            __PACKAGE__
+        }->new($ssh2, 'disconnect');
+

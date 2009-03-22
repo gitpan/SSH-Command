@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               SSH-Command
-version:            0.0.1
+version:            0.02
 abstract:           SSH::Command - interface to execute multiple commands on host by SSH protocol
 author:
     - NRG <pavel.odintsov@googlemail.com>

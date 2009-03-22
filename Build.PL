@@ -11,9 +11,14 @@ my $build = Module::Build->new(
     dist_author => 'NRG <pavel.odintsov@googlemail.com>',
     requires    => {
         'Data::Dumper'    => 0,
-        'LWP::UserAgent'  => 0,
-        'Getopt::Long'    => 0,
-        'Carp'            => 0,
+        'Carp'               => '0',
+        'Data::Dumper'       => '0',
+        'Getopt::Long'       => '0',
+        'Test::More'         => '0',
+        'Test::LongString'   => '0',
+        'Net::SSH2'          => '0',
+        'Scope::Guard'       => '0',
+        'File::Temp'         => '0',
     },
     build_requires => {
         'Test::More'       => 0,

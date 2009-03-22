@@ -1,5 +1,6 @@
 Revision history for Perl extension SSH::Command.
 
-1.00 Dec 15 22:31:42 SAMT 2008
+0.01 Dec 15 22:31:42 SAMT 2008
     - The first public release
-
+0.02 Mar 22 22:31:42 SAMT 2009
+    - Fix Build.PL (add prereq modules from Makefile.PL)
