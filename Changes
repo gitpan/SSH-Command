@@ -6,3 +6,5 @@ Revision history for Perl extension SSH::Command.
     - Fix Build.PL (add prereq modules from Makefile.PL)
 0.03 Mar 23 22:31:42 SAMT 2009
     - Fix tests, refactoring
+0.04 Mar 30 20:11:42 SAMT 2009
+    - Add examples

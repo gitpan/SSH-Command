@@ -11,7 +11,7 @@ use Net::SSH2;
 use Exporter::Lite;
 
 our $DEBUG = 0;
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 our @EXPORT     = qw/ssh_execute/;
 
@@ -19,6 +19,29 @@ our @EXPORT     = qw/ssh_execute/;
 
 SSH::Command - interface to execute multiple commands
 on host by SSH protocol without certificates ( only login + password )
+
+=head1 SYNOPSIS
+
+ use SSH::Command;
+
+ my $result = ssh_execute(
+    host     => '127.0.0.1',
+    username => 'suxx',
+    password => 'qwerty',
+    commands =>
+        [
+            {
+                cmd    => 'uname -a', # for check connection
+                verify => qr/linux/i, # or  => 'linux-....' (check by 'eq')
+            }
+        ]
+    );
+
+ if ($result) {
+    print "all ok!";
+ } else {
+    print "Command failed!";
+ }
 
 =cut
 
