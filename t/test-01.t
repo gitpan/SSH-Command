@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Test::More;
 
-BEGIN { plan tests => $ENV{test_ssh} ? 4 : 1; }
+BEGIN { plan tests => $ENV{test_ssh} ? 5 : 1; }
 
 use_ok('SSH::Command');
 
@@ -73,6 +73,17 @@ sub check_scp {
     );
 }
 
+
+sub check_ssh_command {
+   return ssh_execute(
+        host     => '127.0.0.1',
+        username => 'suxx',
+        password => 'qwerty',
+        command  => 'uname',     # for check connection
+    );
+}
+
 ok( get_uname_from_host_full_match(),    "Simple compare test"  );   
 ok( get_uname_from_host_regexp_verify(), "RegExp fail"          );
 ok( check_scp(),                         "SCP test"             );
+is(check_ssh_command, 'Linux');

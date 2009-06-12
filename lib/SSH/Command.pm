@@ -11,7 +11,7 @@ use Net::SSH2;
 use Exporter::Lite;
 
 our $DEBUG = 0;
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 our @EXPORT     = qw/ssh_execute/;
 
@@ -42,6 +42,16 @@ on host by SSH protocol without certificates ( only login + password )
  } else {
     print "Command failed!";
  }
+
+  Execute one command and get answer:
+
+  return ssh_execute(
+    host     => '127.0.0.1',
+    username => 'suxx',
+    password => 'qwerty',
+    command  => 'uname',     # for check connection
+  );
+
 
 =cut
 
@@ -119,32 +129,17 @@ sub ssh_execute {
                         die "Scp put failed!";
                         return '';
                     }
-                } else {
-                    my $chan = $ssh2->channel();
-                    my $result;
-        
-                    $chan->exec($command->{cmd});
-                    $chan->read($result, 1000);
-                    chomp $result; # remove \n on string tail
-    
-                    if ( ref $command->{verify} eq 'Regexp' ) {
-                        if ($result !~ /$command->{verify}/) {
-                            die "Server answer ($result) is not match reg ex!";
-                            return '';
-                        }
-                    } elsif ($command->{verify}) {
-                        if ($result ne $command->{verify}) {
-                            die "Server answer ($result) is not equal " .
-                                "verify string ($command->{verify})!";
-                            return '';
-                        }
-                    } else {
-                        die "Verify string is null!";
+                } else {   
+                    my $result = execute_command_and_get_answer($ssh2, $command->{cmd});
+
+                    unless ( verify_answer($result, $command->{verify}) ) {
                         return '';
                     }
 
                 }
             }
+        } elsif ($params{command}) {
+            return execute_command_and_get_answer($ssh2, $params{command});
         }
 
         return 1; # all ok
@@ -153,6 +148,45 @@ sub ssh_execute {
         return '';
     }
 }
+
+
+# Execute command and get answer as text
+sub execute_command_and_get_answer {
+    my ($ssh2, $command) = @_;
+
+    my $chan = $ssh2->channel();
+        
+    $chan->exec($command);
+    $chan->read(my $result, 1000);
+    chomp $result; # remove \n on string tail
+
+    return $result;
+}
+
+
+# Check answer
+sub verify_answer {
+    my ($result, $verify) = @_;
+
+    if ( ref $verify eq 'Regexp' ) {
+        if ($result !~ /$verify/) {
+            die "Server answer ($result) is not match reg ex!";
+            return '';
+        }
+    } elsif ($verify) {
+        if ($result ne $verify) {
+            die "Server answer ($result) is not equal " .
+                "verify string ($verify)!";
+            return '';
+        }
+    } else {
+        die "Verify string is null!";
+        return '';
+    }
+
+    return 1;
+}
+
 
 sub wrapper {
     # Put config data to YAML config
