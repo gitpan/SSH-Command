@@ -11,7 +11,7 @@ use Net::SSH2;
 use Exporter::Lite;
 
 our $DEBUG = 0;
-our $VERSION = '0.05';
+our $VERSION = '0.07';
 
 our @EXPORT     = qw/ssh_execute/;
 
@@ -45,7 +45,7 @@ on host by SSH protocol without certificates ( only login + password )
 
   Execute one command and get answer:
 
-  return ssh_execute(
+  my $command_answer_as_text = ssh_execute(
     host     => '127.0.0.1',
     username => 'suxx',
     password => 'qwerty',
@@ -70,7 +70,7 @@ sub raw_to_string {
 
 # Sub for working with server over ssh / scp
 sub ssh_execute {
-    my %params = @_;    
+    my %params = @_; 
 
     #require_once 'Net::SSH2';
     my $ssh2 = Net::SSH2->new();
@@ -78,75 +78,101 @@ sub ssh_execute {
     print "Start connection\n" if $DEBUG;
 
     unless ($params{host} && $ssh2->connect($params{host})) {
-        die "SSH connection failed or host not specified!";
+        die "SSH connection failed or host not specified!\n";
         return '';
     } else {
         print "Connection established" if $DEBUG;
     }   
     
-    # classical password auth
-    if ($params{password} && $params{username}) {
-        $ssh2->auth_password( $params{username}, $params{password} );
-    } elsif ($params{key_path}) {
-        # auth by cert not supported
-        die "Certificate auth in progress!";
-        return '';
-    } else {
-        die "Not enought data for auth!";
+    unless ( auth_on_ssh($ssh2, { %params }) ) {
+        die "Auth failed!\n";
         return '';
     }
 
     # check auth result
-    if ($ssh2->auth_ok) {
-        if ($params{hostkey}) { # check server fingerprint
-            if (raw_to_string($ssh2->hostkey('md5')) ne lc $params{hostkey}) {
-                die "Server digest verification failed!";
-                return '';
-            }
-        }
-    
-        my $sg = Scope::Guard->new( sub { $ssh2->disconnect } );
-
-        if ( ref $params{commands} eq 'ARRAY' ) {
-            foreach my $command (@{ $params{commands} }) {
-
-                if (ref $command        eq 'HASH'    &&
-                    $command->{cmd}     eq 'scp_put' &&
-                    $command->{string}               &&
-                    $command->{dest_path} 
-                ) {
-                    my $temp_file = File::Temp->new;
-
-                    $temp_file->printflush($command->{string});
-                    $temp_file->seek(0, 0);
-                    #print $temp_file->getlines; -- work very unstable!
-                    unless ( $command->{dest_path} =~ m#^/(?:var|tmp)# ) {
-                        die "Danger! Upload only in /var or /tmp";
-                        return '';
-                    }
-
-                    unless($ssh2->scp_put($temp_file, $command->{dest_path})) {
-                        die "Scp put failed!";
-                        return '';
-                    }
-                } else {   
-                    my $result = execute_command_and_get_answer($ssh2, $command->{cmd});
-
-                    unless ( verify_answer($result, $command->{verify}) ) {
-                        return '';
-                    }
-
-                }
-            }
-        } elsif ($params{command}) {
-            return execute_command_and_get_answer($ssh2, $params{command});
-        }
-
-        return 1; # all ok
-    } else {
-        die "SSH authorization failed!";
+    unless ($ssh2->auth_ok) {
+        die "SSH authorization failed!\n";
         return '';
     }
+
+
+    if ($params{hostkey}) { # check server fingerprint
+        if (raw_to_string($ssh2->hostkey('md5')) ne lc $params{hostkey}) {
+            die "Server digest verification failed!\n";
+            return '';
+        }
+    }
+    
+    my $sg = Scope::Guard->new( sub { $ssh2->disconnect } );
+
+    if ( ref $params{commands} eq 'ARRAY' ) {
+        foreach my $command (@{ $params{commands} }) {
+
+            if ( ref $command eq 'HASH' && $command->{cmd} eq 'scp_put' ) {
+
+                unless ( put_file_to_server($command->{string}, $command->{dest_path}, $ssh2) ) {
+                    return '';
+                }
+
+            } else {   
+                my $result = execute_command_and_get_answer($ssh2, $command->{cmd});
+
+                unless ( verify_answer($result, $command->{verify}) ) {
+                    return '';
+                }
+
+            }
+        }
+    } elsif ($params{command}) {
+        return execute_command_and_get_answer($ssh2, $params{command});
+    }
+
+    return 1; # all ok
+}
+
+
+# Try to login to server
+sub auth_on_ssh {
+    my ($ssh2, $params) = @_;
+
+    # classical password auth
+    if ($params->{password} && $params->{username}) {
+        $ssh2->auth_password( $params->{username}, $params->{password} );
+    } elsif ($params->{key_path}) {
+        # auth by cert not supported
+        die "Certificate auth in progress!\n";
+        return '';
+    } else {
+        die "Not enought data for auth!\n";
+        return '';
+    }
+
+    return 1;
+}
+
+
+# Put file to server via scp
+sub put_file_to_server {
+    my ($text, $dest_path, $ssh2) = @_;
+
+    return '' unless $text && $dest_path && $ssh2;
+
+    my $temp_file = File::Temp->new;
+    $temp_file->printflush($text);
+    $temp_file->seek(0, 0);
+    
+    #print $temp_file->getlines; -- work very unstable!
+    unless ( $dest_path =~ m#^/(?:var|tmp)# ) {
+        die "Danger! Upload only in /var or /tmp\n";
+        return '';
+    }
+
+    unless($ssh2->scp_put($temp_file, $dest_path)) {
+        die "Scp put failed!\n";
+        return '';
+    }
+
+    return 1;
 }
 
 
@@ -157,7 +183,7 @@ sub execute_command_and_get_answer {
     my $chan = $ssh2->channel();
         
     $chan->exec($command);
-    $chan->read(my $result, 1000);
+    $chan->read(my $result, 102400);
     chomp $result; # remove \n on string tail
 
     return $result;
@@ -170,17 +196,17 @@ sub verify_answer {
 
     if ( ref $verify eq 'Regexp' ) {
         if ($result !~ /$verify/) {
-            die "Server answer ($result) is not match reg ex!";
+            die "Server answer ($result) is not match reg ex!\n";
             return '';
         }
     } elsif ($verify) {
         if ($result ne $verify) {
             die "Server answer ($result) is not equal " .
-                "verify string ($verify)!";
+                "verify string ($verify)!\n";
             return '';
         }
     } else {
-        die "Verify string is null!";
+        die "Verify string is null!\n";
         return '';
     }
 
